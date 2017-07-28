@@ -7,30 +7,29 @@ module galois_mul(
 );
    parameter WIDTH = 8;
    reg [WIDTH - 1 : 0] result;
-   reg [WIDTH - 1 : 0] result_tmp;
    assign result_o = result;
    
-   wire [WIDTH : 0] first_op_shifted [0 : WIDTH - 1];
-   
+   wire [WIDTH - 1: 0] first_op_shifted [0 : WIDTH];
+   wire [WIDTH - 1: 0] result_tmp [0 : WIDTH * 2];
+  
    genvar i;
    generate
+      // get x
       for (i = 0; i < WIDTH; i = i + 1) begin
-         // shift first operand by i
-         assign first_op_shifted[i][WIDTH - 1 : 0] = { first_op_i[WIDTH - 1 : i], {i{1'b0}} };
+         assign first_op_shifted[i] = (i == 0) ? first_op_i : (first_op_shifted[i - 1] << 1) ^ (first_op_shifted[i - 1] & (1 << (WIDTH - 1)) ? poly_op_i : 0);
+      end
+      // x & y
+      for (i = 0; i < WIDTH; i = i + 1) begin
+         assign result_tmp[i + WIDTH - 1] = { (WIDTH){second_op_i[i]} } & first_op_shifted[i];
+      end
+      // xor all x to result 
+      for (i = 0; i < WIDTH - 1; i = i + 1) begin
+         assign result_tmp[i] = result_tmp[i * 2 + 1] ^ result_tmp[i * 2 + 2];
       end
    endgenerate
-   
-   integer j;
-   
-   always @* begin
-      result_tmp = { (WIDTH){1'b0} };
-      for(j = 0; j < WIDTH; j = j + 1) begin
-         result_tmp = result_tmp ^ first_op_shifted[j][WIDTH - 1 : 0] & { (WIDTH){second_op_i[j]} } ^ ((first_op_shifted[j][WIDTH - 1] & 1) ? poly_op_i : 0);
-      end
-   end
-   
+ 
    always @ (posedge clk_i) begin
-      result <= result_tmp;
+      result <= result_tmp[0];
    end
 
 endmodule
@@ -69,7 +68,6 @@ module xor_squash(
    end
 
 endmodule
-
 
 
 //1. ld.simd[] + replace -> res[63:0]
