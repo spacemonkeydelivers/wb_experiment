@@ -70,12 +70,12 @@ module wb_leds(
    endgenerate
 
    always @ (posedge wb_clk_i) begin
+      ack <= 0;
       // clear all data
       if (wb_reset_i) begin
          leds <= 0;
          output_data <= 0;
          busy <= 0;
-         ack <= 0;
       end
       else begin
          // if has strobe and cycle and doesn't have stall 
@@ -88,12 +88,10 @@ module wb_leds(
             else begin
                output_data <= leds;
             end
-            // assert WB_ACK
-            ack <= 1;
-         end
-         else begin
-            // deassert WB_ACK
-            ack <= 0;
+            // assert WB_ACK if it's not asserted
+            if (!ack) begin
+               ack <= 1;
+            end
          end
       end
    end
