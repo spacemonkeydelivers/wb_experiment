@@ -15,6 +15,21 @@ VerilatedVcdC* tfp;
 bool dumpVcd = true;
 
 
+#define TICK_NEG()   wishbone.clk_i = 0; \
+                     wishbone.eval(); \
+                     if (dumpVcd){ \
+                         tfp->dump(tick); \
+                     } \
+                     tick++;
+
+#define TICK_POS() wishbone.clk_i = 1; \
+                   wishbone.eval(); \
+                   if (dumpVcd){ \
+                       tfp->dump(tick); \
+                   } \
+                   tick++;
+
+
 int main(int argc, char **argv){
   // TODO: use args instead
   Verilated::commandArgs(argc, argv);
@@ -56,221 +71,105 @@ enum {
   // perform reset
   int tick = 0;
   wishbone.reset_i = 1;
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
+  TICK_POS();
+  TICK_NEG();
+  TICK_POS();
   wishbone.reset_i = 0;
+  TICK_NEG();
+
 
   // set data
   wishbone.addr_i = DATA;
   wishbone.data_i = 0x1234;
   wishbone.write_i = 1;
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
+  TICK_POS();
+
   wishbone.write_i = 0;
   wishbone.data_i = 0x4321;
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  // read data
+  TICK_NEG();
+
+  //read data
   int data_out = 0;
   wishbone.addr_i = DATA;
   wishbone.read_i = 1;
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
+  TICK_POS();
   data_out = wishbone.data_o;
   fprintf(stderr, "Data: %x\n", data_out);
   wishbone.read_i = 0;
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  // set addr_h
-  // get addr_h
-  // set addr_l
-  // get addr_l
-  // set wb_sel
-  wishbone.addr_i = WB_SELECT;
-  wishbone.data_i = 0x3;
-  wishbone.write_i = 1;
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  // get wb_sel
-  // set write bits in status
-//  wishbone.addr_i = STATUS;
+  TICK_NEG();
+
+
+  // set write mode
   wishbone.addr_i = STATUS;
-  wishbone.data_i = 1 << 3 | 1 << 4;
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
+  wishbone.data_i = (1 << DO_WRITE);
+  wishbone.write_i = 1;
+  TICK_POS();
+  TICK_NEG();
+
+  // set WB_SEL
+  wishbone.addr_i = WB_SELECT;
+  wishbone.data_i = (1 << 1);
+  TICK_POS();
+  TICK_NEG();
+
+  // run wb transact
+  wishbone.addr_i = WB_RUN;
+  TICK_POS();
   wishbone.write_i = 0;
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 1;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  wishbone.clk_i = 0;
-  wishbone.eval();
-  if (dumpVcd){
-    tfp->dump(tick);
-    tick++;
-  }
-  // get status
-  // set read bits in status
-  // get status
-  // read result
+  TICK_NEG();
+
+  // skip a cycle after the wb transact
+  TICK_POS();
+  TICK_NEG();
+
+  // request read from the slave
+  wishbone.addr_i = STATUS;
+  wishbone.data_i = (1 << DO_READ);
+  wishbone.write_i = 1;
+  TICK_POS();
 //  wishbone.write_i = 0;
-//  wishbone.read_i = 1;
-//  wishbone.addr_i = RESULT;
+  TICK_NEG();
+  
+  // run WB transact
+  wishbone.write_i = 1;
+  wishbone.addr_i = WB_RUN;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  
+  // skip a cycle after the wb transact
+  TICK_POS();
+  TICK_NEG();
+
+  wishbone.addr_i = RESULT;
+  wishbone.read_i = 1;
+  TICK_POS();
+  wishbone.read_i = 0;
+  TICK_NEG();
+  fprintf(stderr, "Data from wb: %x\n", wishbone.data_o);
+
+  wishbone.addr_i = STATUS;
+  wishbone.read_i = 1;
+  TICK_POS();
+  wishbone.read_i = 0;
+  TICK_NEG();
+  fprintf(stderr, "Status from wb: %x\n", wishbone.data_o);
+
+  wishbone.addr_i = RESULT;
+  wishbone.read_i = 1;
+  TICK_POS();
+  wishbone.read_i = 0;
+  TICK_NEG();
+  fprintf(stderr, "Data from wb: %x\n", wishbone.data_o);
 
 
-/*
-  for (int tick = 0; tick < 0xff * 0xff; ++tick) {
-    // neg edge
-    fprintf(stderr, "Reference: result of %x and %x is %x\n", tick % 0xff, tick / 0xff, res);
-    galois.clk_i = 0;
-    galois.first_op_i = tick % 0xff;
-    galois.second_op_i = tick / 0xff;
-    galois.poly_op_i = 0xC3;
-    galois.eval();
-    if (dumpVcd){
-      tfp->dump(tick);
-    }
-    // do not check results, don't know how to do it correctly for first tick
-    // pos edge
-    galois.clk_i = 1;
-    galois.eval();
-    if (dumpVcd){
-      tfp->dump(tick);
-    }
-    fprintf(stderr, "Verilog: on tick %x data %x %x result %x\n", tick, tick % 0xff, tick / 0xff, galois.result_o);
-    if (res != galois.result_o)
-    {
-        fprintf(stderr, "FAILED %x %x\n", res, galois.result_o);
-        return 1;
-    }
-  }
-  */
+  TICK_POS();
+  TICK_NEG();
+  TICK_POS();
+  TICK_NEG();
+  TICK_POS();
+  TICK_NEG();
+
   wishbone.final();
   if (dumpVcd){
     tfp->close();

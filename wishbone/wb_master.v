@@ -39,12 +39,12 @@ module wb_master(
    localparam ADDRESS_H = 3;
    localparam RESULT = 4;
    localparam WB_SELECT = 5;
+   localparam WB_RUN = 6;
  
    localparam ERROR_READ = 0;
    localparam ERROR_WRITE = 1;
    localparam DO_READ = 2;
    localparam DO_WRITE = 3;
-   localparam RUN_WB = 4;
    localparam BUSY = 5;
   
    // assign unused signals
@@ -68,6 +68,9 @@ module wb_master(
    // status register of the master
    reg [7:0] status;
 
+//   wire wb_transact;
+//   assign wb_transact = ext_write_i && (ext_addr_i[7:0] == WB_RUN);
+
    always @ (posedge wb_clk_i) begin
       if (wb_reset_i) begin
          wb_addr <= 0;
@@ -85,7 +88,6 @@ module wb_master(
                STATUS: begin
                   // Do not clear busy flag
                   // May be don't clear ERR READ/WRITE
-                  status[RUN_WB] <= ext_data_i[RUN_WB];
                   status[DO_READ] <= ext_data_i[DO_READ];
                   status[DO_WRITE] <= ext_data_i[DO_WRITE];
                   status[ERROR_WRITE] <= ext_data[ERROR_WRITE];
@@ -99,14 +101,22 @@ module wb_master(
                ADDRESS_H: wb_addr[31:16] <= ext_data_i;
                // save select bits
                WB_SELECT: wb_sel <= ext_data_i[WB_SEL - 1:0];
+               // run WB
+               WB_RUN: begin
+                  wb_cyc_o <= 1;
+                  wb_stb_o <= 1;
+                  wb_we_o <= status[DO_WRITE];
+                  status[BUSY] <= 1;
+               end
                // wrong address write, set error
                default: status[ERROR_WRITE] <= 1;
             endcase
+            // run wb cycle
          end
          if (ext_read_i) begin
             case (ext_addr_i[7:0])
                // read status register
-               STATUS: ext_data[7:0] <= status;
+               STATUS: ext_data <= {{EXT_BUS_WIDTH - 8{1'b0}},{status}};
                // read data value
                DATA: ext_data <= wb_data;
                // read low address part
@@ -121,19 +131,6 @@ module wb_master(
                default: ext_data <= 16'hE550;
             endcase
          end
-         // if RUN bit is set in status register
-         if (status[RUN_WB]) begin
-            // set busy flag
-            status[BUSY] <= 1;
-            // clear run wb flag
-            status[RUN_WB] <= 0;
-            // assert wb write
-            wb_we_o <= status[DO_WRITE];
-            // assert WB_CYC_O wire
-            wb_cyc_o <= 1;
-            // assert WB_STB_O wire
-            wb_stb_o <= 1;
-         end
          // do based on WB behaviour
          if (status[BUSY] && wb_ack_i) begin
             status[BUSY] <= 0;
@@ -145,6 +142,7 @@ module wb_master(
             wb_stb_o <= 0;
             // on WB_READ latch data from slave
             if (status[DO_READ]) begin
+               ext_data <= wb_data_i;
                wb_result <= wb_data_i;
             end
          end

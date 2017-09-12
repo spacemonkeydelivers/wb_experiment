@@ -4,7 +4,8 @@ enum {
    ADDRESS_L,
    ADDRESS_H,
    RESULT,
-   WB_SELECT
+   WB_SELECT,
+   WB_RUN
 };
 
 enum {
@@ -12,7 +13,6 @@ enum {
    ERROR_WRITE,
    DO_READ,
    DO_WRITE,
-   RUN_WB,
    BUSY
 } status_bits;
 
