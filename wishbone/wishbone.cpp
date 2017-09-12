@@ -78,12 +78,147 @@ enum {
   TICK_NEG();
 
 
+  // set first addr
+  wishbone.addr_i = ADDRESS_L;
+  wishbone.data_i = 0x1000;
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // set first data
+  wishbone.addr_i = DATA;
+  wishbone.data_i = 0x1234;
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // set first sel
+  wishbone.addr_i = WB_SELECT;
+  wishbone.data_i = (1 << 1);
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // set write wb
+  wishbone.addr_i = STATUS;
+  wishbone.data_i = (1 << DO_WRITE);
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // make wb transact
+  wishbone.write_i = 1;
+  wishbone.addr_i = WB_RUN;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // skip cycle
+  TICK_POS();
+  TICK_NEG();
+  //
+  // set second addr
+  wishbone.addr_i = ADDRESS_L;
+  wishbone.data_i = 0x2000;
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // set second data
+  wishbone.addr_i = DATA;
+  wishbone.data_i = 0x4321;
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // set second sel
+  wishbone.addr_i = WB_SELECT;
+  wishbone.data_i = (1 << 0);
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // set write wb
+  wishbone.addr_i = STATUS;
+  wishbone.data_i = (1 << DO_WRITE);
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // make wb transact
+  wishbone.write_i = 1;
+  wishbone.addr_i = WB_RUN;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // skip cycle
+  TICK_POS();
+  TICK_NEG();
+  //
+  
+  // set first addr
+  wishbone.addr_i = ADDRESS_L;
+  wishbone.data_i = 0x1000;
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // read from wb
+  wishbone.addr_i = STATUS;
+  wishbone.data_i = (1 << DO_READ);
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // skip a cycle after the wb transact
+  TICK_POS();
+  TICK_NEG();
+  // run WB transact
+  wishbone.write_i = 1;
+  wishbone.addr_i = WB_RUN;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // skip a cycle after the wb transact
+  TICK_POS();
+  TICK_NEG();
+  TICK_POS();
+  TICK_NEG();
+  fprintf(stderr, "Data from first slave wb: %x\n", wishbone.data_o);
+  // set second addr
+  wishbone.addr_i = ADDRESS_L;
+  wishbone.data_i = 0x2000;
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // read from second
+  wishbone.addr_i = STATUS;
+  wishbone.data_i = (1 << DO_READ);
+  wishbone.write_i = 1;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // skip a cycle after the wb transact
+  TICK_POS();
+  TICK_NEG();
+  // run WB transact
+  wishbone.write_i = 1;
+  wishbone.addr_i = WB_RUN;
+  TICK_POS();
+  wishbone.write_i = 0;
+  TICK_NEG();
+  // skip a cycle after the wb transact
+  TICK_POS();
+  TICK_NEG();
+  TICK_POS();
+  TICK_NEG();
+  fprintf(stderr, "Data from second slave wb: %x\n", wishbone.data_o);
+  /*
   // set data
   wishbone.addr_i = DATA;
   wishbone.data_i = 0x1234;
   wishbone.write_i = 1;
   TICK_POS();
-
   wishbone.write_i = 0;
   wishbone.data_i = 0x4321;
   TICK_NEG();
@@ -161,7 +296,7 @@ enum {
   wishbone.read_i = 0;
   TICK_NEG();
   fprintf(stderr, "Data from wb: %x\n", wishbone.data_o);
-
+  */
 
   TICK_POS();
   TICK_NEG();

@@ -34,8 +34,8 @@ module wb_leds(
    output [LED_WIDTH - 1:0] leds_o
 );
    parameter WB_BUS_WIDTH     = 16;
-   parameter WB_ADDR_WIDTH     = 32;
-   parameter WB_BUS_ADDR      = 16'h00A0;
+   parameter WB_ADDR_WIDTH    = 32;
+   parameter WB_BUS_ADDR      = 32'h000000A0;
    parameter LED_WIDTH        = 16;
    localparam WB_SEL          = WB_BUS_WIDTH / 8;
 
@@ -62,6 +62,13 @@ module wb_leds(
 
    // data to write to the leds
    wire [WB_BUS_WIDTH - 1 : 0] data_w;
+
+   wire addr_match;
+   assign addr_match = (wb_addr_i == WB_BUS_ADDR);
+
+   wire accessed;
+   assign accessed = (wb_stb_i && wb_cyc_i && !wb_stall_o && addr_match);
+
    genvar i;
    generate
       for (i = 0; i < WB_SEL; i = i + 1) begin
@@ -71,6 +78,7 @@ module wb_leds(
 
    always @ (posedge wb_clk_i) begin
       ack <= 0;
+      output_data <= 0;
       // clear all data
       if (wb_reset_i) begin
          leds <= 0;
@@ -79,7 +87,7 @@ module wb_leds(
       end
       else begin
          // if has strobe and cycle and doesn't have stall 
-         if (wb_stb_i && wb_cyc_i && !wb_stall_o) begin
+         if (accessed) begin
             // write leds to be lighten
             if (wb_we_i) begin
                leds <= data_w;
