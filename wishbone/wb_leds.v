@@ -63,11 +63,8 @@ module wb_leds(
    // data to write to the leds
    wire [WB_BUS_WIDTH - 1 : 0] data_w;
 
-   wire addr_match;
-   assign addr_match = (wb_addr_i == WB_BUS_ADDR);
-
    wire accessed;
-   assign accessed = (wb_stb_i && wb_cyc_i && !wb_stall_o && addr_match);
+   assign accessed = (wb_stb_i && !wb_stall_o);
 
    genvar i;
    generate
@@ -81,7 +78,7 @@ module wb_leds(
       output_data <= 0;
       // clear all data
       if (wb_reset_i) begin
-         leds <= 0;
+         leds <= 5;
          output_data <= 0;
          busy <= 0;
       end
@@ -95,11 +92,10 @@ module wb_leds(
             // read lighten leds
             else begin
                output_data <= leds;
+               leds <= leds + 1;
             end
             // assert WB_ACK if it's not asserted
-            if (!ack) begin
-               ack <= 1;
-            end
+            ack <= 1;
          end
       end
    end

@@ -1,150 +1,93 @@
-module wb_master(
-   /* verilator lint_off UNUSED */
+module wb_pipeline_master(
+   // external address to operate on
    input [EXT_ADDR_WIDTH - 1:0]  ext_addr_i,
+   // external data to operate 
    input [EXT_BUS_WIDTH - 1:0]   ext_data_i,
+   // data to the external
    output [EXT_BUS_WIDTH - 1:0]  ext_data_o,
+   // external write request
    input ext_write_i,
+   // external read request
    input ext_read_i,
-   
+   // another input clock from the external?
+   input ext_clk_i,
+    
+   // reset WB state
    input wb_reset_i,
+   // wb part clock  
    input wb_clk_i,
+   // data to be read from the WB
    input [WB_BUS_WIDTH - 1:0] wb_data_i,
+   // termination of a normal bus cycle
    input wb_ack_i,
-   /* verilator lint_off UNUSED */
+   // current slave is not able to accept the transfer
    input wb_stall_i,
-   /* verilator lint_off UNUSED */
+   // abnormal cycle termination
    input wb_err_i,
-   /* verilator lint_off UNUSED */
+   // interface is not ready to accept or send data, cycle should be retried
    input wb_rty_i,
+   // tag associated with the input data 
+   input [TAG_WIDTH - 1 : 0] wb_tgd_i,
    
+   // data to put on the WB
    output [WB_BUS_WIDTH - 1:0] wb_data_o,
+   // address to put on the bus
    output [WB_ADDR_WIDTH - 1:0] wb_addr_o,
-   output reg wb_cyc_o,
+   // indicates a valid bus cycle, asserted for the duration of all bys cycles
+   output wb_cyc_o,
+   // select the data size for the transaction
+   output [WB_SEL_WIDTH - 1:0] wb_sel_o,
+   // indicates a valid data transfer cycle
+   output wb_stb_o,
+   // if asserted to 1, means this is a write cycle
+   output wb_we_o,
+   // current bus cycle is uninterruptible
    output wb_lock_o,
-   output [WB_SEL - 1:0] wb_sel_o,
-   output reg wb_stb_o,
-   output reg wb_we_o
+   // tag associated with the transaction address
+   output [TAG_WIDTH - 1 : 0] wb_tga_o,
+   // tag associated with the cycle
+   output [TAG_WIDTH - 1 : 0] wb_tgc_o,
+   // tag associated with the output data
+   output [TAG_WIDTH - 1 : 0] wb_tgd_o
 );
+   localparam BYTE_SIZE     = 8;
+   localparam SHORT_SIZE    = BYTE_SIZE * 2;
+   localparam WORD_SIZE     = BYTE_SIZE * 4;
+   localparam DWORD_SIZE    = BYTE_SIZE * 8;
    parameter WB_BUS_WIDTH   = 16;
    parameter WB_ADDR_WIDTH  = 32;
    parameter EXT_BUS_WIDTH  = 16;
    parameter EXT_ADDR_WIDTH = 26;
    parameter LED_WIDTH      = 16;
-   localparam WB_SEL        = WB_BUS_WIDTH / 8;
+   parameter TAG_WIDTH      = 4;
+   localparam WB_SEL_WIDTH  = WB_BUS_WIDTH / BYTE_SIZE;
 
-   // enums
-   localparam STATUS = 0;
-   localparam DATA = 1;
-   localparam ADDRESS_L = 2;
-   localparam ADDRESS_H = 3;
-   localparam RESULT = 4;
-   localparam WB_SELECT = 5;
-   localparam WB_RUN = 6;
- 
-   localparam ERROR_READ = 0;
-   localparam ERROR_WRITE = 1;
-   localparam DO_READ = 2;
-   localparam DO_WRITE = 3;
-   localparam BUSY = 5;
-  
-   // assign unused signals
-   assign wb_lock_o = 1'b0;
+   localparam STATE_IDLE = 0;
+   localparam STATE_BUSY = 1;
 
-   // store address to access WB with
-   reg [WB_ADDR_WIDTH - 1:0] wb_addr;
-   assign wb_addr_o = wb_addr;
-   // store data to put on WB
-   reg [WB_BUS_WIDTH - 1:0] wb_data;
-   assign wb_data_o = wb_data;
-   // result of WB read
-   reg [WB_BUS_WIDTH - 1:0] wb_result;
-   // wb select bits
-   reg [WB_SEL - 1:0] wb_sel;
-   assign wb_sel_o = wb_sel;
-   
-   // data to put on the external bus
-   reg [EXT_BUS_WIDTH - 1:0] ext_data;
-   assign ext_data_o = ext_data;
-   // status register of the master
-   reg [7:0] status;
+   // assert to 0 unused signals
+   assign wb_tga_o = 0;
+   assign wb_tgc_o = 0;
+   assign wb_tgd_o = 0;
+   assign wb_lock_o = 0;
 
-//   wire wb_transact;
-//   assign wb_transact = ext_write_i && (ext_addr_i[7:0] == WB_RUN);
+   reg [10:0] state;
+
+   // dual clock fifo to queue requests? 
+
+
+   // asserted to 1 if any external request is present
+   wire accessed;
+   assign accessed = ext_read_i || ext_write_i;
 
    always @ (posedge wb_clk_i) begin
       if (wb_reset_i) begin
-         wb_addr <= 0;
-         wb_data <= 0;
-         ext_data <= 0;
-         wb_result <= 0;
-         status <= 0;
-         wb_sel <= 0;
-      end
-      else begin
-         if (ext_write_i) begin
-            // check external address
-            case (ext_addr_i[7:0])
-               // set operation type and run status
-               STATUS: begin
-                  // Do not clear busy flag
-                  // May be don't clear ERR READ/WRITE
-                  status[DO_READ] <= ext_data_i[DO_READ];
-                  status[DO_WRITE] <= ext_data_i[DO_WRITE];
-                  status[ERROR_WRITE] <= ext_data[ERROR_WRITE];
-                  status[ERROR_READ] <= ext_data[ERROR_READ];
-               end
-               // save data to write to wb
-               DATA: wb_data <= ext_data_i;
-               // save low address part
-               ADDRESS_L: wb_addr[15:0] <= ext_data_i;
-               // save high address part
-               ADDRESS_H: wb_addr[31:16] <= ext_data_i;
-               // save select bits
-               WB_SELECT: wb_sel <= ext_data_i[WB_SEL - 1:0];
-               // run WB
-               WB_RUN: begin
-                  wb_cyc_o <= 1;
-                  wb_stb_o <= 1;
-                  wb_we_o <= status[DO_WRITE];
-                  status[BUSY] <= 1;
-               end
-               // wrong address write, set error
-               default: status[ERROR_WRITE] <= 1;
-            endcase
-            // run wb cycle
-         end
-         if (ext_read_i) begin
-            case (ext_addr_i[7:0])
-               // read status register
-               STATUS: ext_data <= {{EXT_BUS_WIDTH - 8{1'b0}},{status}};
-               // read data value
-               DATA: ext_data <= wb_data;
-               // read low address part
-               ADDRESS_L: ext_data <= wb_addr[15:0];
-               // read high address part
-               ADDRESS_H: ext_data <= wb_addr[31:16];
-               // read result
-               RESULT: ext_data <= wb_result;
-               // wb select
-               WB_SELECT: ext_data <= {{EXT_BUS_WIDTH - WB_SEL{1'b0}},{wb_sel}};
-               // put error on the external bus
-               default: ext_data <= 16'hE550;
-            endcase
-         end
-         // do based on WB behaviour
-         if (status[BUSY] && wb_ack_i) begin
-            status[BUSY] <= 0;
-            // clear wb write wire
-            wb_we_o <= 0;
-            // deassert WB_CYC_O wire
-            wb_cyc_o <= 0;
-            // deassert WB_STB_O wire
-            wb_stb_o <= 0;
-            // on WB_READ latch data from slave
-            if (status[DO_READ]) begin
-               ext_data <= wb_data_i;
-               wb_result <= wb_data_i;
-            end
+         state <= STATE_IDLE;
+      end else begin
+         if (state == STATE_IDLE && accessed) begin
+            state <= STATE_BUSY;
+         end else if (state == STATE_BUSY) begin
+            state <= STATE_IDLE;
          end
       end
    end
